@@ -22,6 +22,9 @@ var HEIGHT = 50;
 var rafID = null;
 var gameOver = false;
 
+var topScorers = [];
+var topScorersText;
+
 window.onload = function() {	
     //======microphone setup
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -94,6 +97,16 @@ window.onload = function() {
 
             game.time.events.loop(pipeInterval, addPipe); 
             addPipe();
+
+            // Load top scorers from localStorage
+            loadTopScorers();
+
+            // Create text for top scorers
+            topScorersText = game.add.text(game.width - 200, 10, "Top High Scorers", {
+                font: "bold 24px Arial",
+                fill: "#5ed2fd"
+            });
+            updateTopScorersDisplay();
         },
 
         update: function() {
@@ -129,6 +142,47 @@ window.onload = function() {
         scoreText.text = "Score: " + score + "\nBest: " + topScore;	
     }
 
+    function loadTopScorers() {
+        var storedScorers = localStorage.getItem("topFlappyScorers");
+        topScorers = storedScorers ? JSON.parse(storedScorers) : [];
+    }
+
+    function updateTopScorersDisplay() {
+        var displayText = "Top High Scorers\n";
+        topScorers.sort((a, b) => b.score - a.score);
+        
+        for (var i = 0; i < Math.min(5, topScorers.length); i++) {
+            displayText += `${i + 1}. ${topScorers[i].name}: ${topScorers[i].score}\n`;
+        }
+        
+        topScorersText.text = displayText;
+    }
+    
+    function checkAndAddHighScore(newScore) {
+        // Check if the new score qualifies for top 5
+        if (topScorers.length < 5 || newScore > topScorers[topScorers.length - 1].score) {
+            // Prompt for name
+            var playerName = prompt("Enter your name:");
+            
+            if (playerName) {
+                // If the list is full, remove the lowest score
+                if (topScorers.length >= 5) {
+                    topScorers.pop();
+                }
+                
+                // Add new high score
+                topScorers.push({ name: playerName, score: newScore });
+                
+                // Sort and save
+                topScorers.sort((a, b) => b.score - a.score);
+                localStorage.setItem("topFlappyScorers", JSON.stringify(topScorers));
+                
+                // Update display
+                updateTopScorersDisplay();
+            }
+        }
+    }
+
     function addPipe() {
         let currentPipeSpeed = -birdSpeed - (Math.floor(score / 10) * 20);
         let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 50);
@@ -145,11 +199,17 @@ window.onload = function() {
     }
 	
     function die() {
-        if (gameOver) return; // Prevent multiple calls
+        if (gameOver) return;
         
-        gameOver = true; // Set global gameOver flag
+        gameOver = true;
         
-        localStorage.setItem("topFlappyScore", Math.max(score, topScore));
+        var currentTopScore = Math.max(score, topScore);
+        localStorage.setItem("topFlappyScore", currentTopScore);
+        
+        // Check if this is a high score
+        checkAndAddHighScore(score);
+
+    
         
         // Call the stopGame method
         game.state.getCurrentState().stopGame();
