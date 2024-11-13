@@ -4,9 +4,9 @@ var birdGravity = 400; //800
 // horizontal bird speed
 var birdSpeed = 125;
 // flap thrust
-var birdFlapPower = 80; //300
+var birdFlapPower = 100; //300
 // milliseconds between the creation of two pipes
-var pipeInterval = 2000;
+var pipeInterval = 2500;
 // hole between pipes, in pixels
 var pipeHole = 120;
 var pipeGroup;
@@ -63,7 +63,7 @@ window.onload = function() {
 
             // Add game over image
             game.load.image("gameOver", "assets/game-over.png");
-            game.load.image("restartButton", "assets/start-1.png");
+            game.load.image("restartButton", "assets/retry.png");
         },
 
         create: function() {
