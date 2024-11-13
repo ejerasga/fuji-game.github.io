@@ -1,195 +1,216 @@
-
 var bird;
-    // bird gravity, will make bird fall if you don't flap
-var birdGravity = 500; //800
-    // horizontal bird speed
+// bird gravity, will make bird fall if you don't flap
+var birdGravity = 400; //800
+// horizontal bird speed
 var birdSpeed = 125;
-    // flap thrust
-var birdFlapPower = 100; //300
-    // milliseconds between the creation of two pipes
+// flap thrust
+var birdFlapPower = 80; //300
+// milliseconds between the creation of two pipes
 var pipeInterval = 2000;
-    // hole between pipes, in puxels
+// hole between pipes, in pixels
 var pipeHole = 120;
 var pipeGroup;
-var score=0;
+var score = 0;
 var scoreText;
 var topScore;
 var button;
 
-
 var audioContext = null;
 var meter = null;
-// var canvasContext = null;
-var WIDTH=500;
-var HEIGHT=50;
+var WIDTH = 500;
+var HEIGHT = 50;
 var rafID = null;
+var gameOver = false;
 
 window.onload = function() {	
-//======microphone shit
-    // monkeypatch Web Audio
+    //======microphone setup
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
-	
-    // grab an audio context
     audioContext = new AudioContext();
 
-    // Attempt to get audio input
     try {
-        // monkeypatch getUserMedia
         navigator.getUserMedia = 
-        	navigator.getUserMedia ||
-        	navigator.webkitGetUserMedia ||
-        	navigator.mozGetUserMedia;
+            navigator.getUserMedia ||
+            navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia;
 
-        // ask for an audio input
         navigator.getUserMedia(
-        {
-            "audio": {
-                "mandatory": {
-                    "googEchoCancellation": "false",
-                    "googAutoGainControl": "false",
-                    "googNoiseSuppression": "false",
-                    "googHighpassFilter": "false"
+            {
+                "audio": {
+                    "mandatory": {
+                        "googEchoCancellation": "false",
+                        "googAutoGainControl": "false",
+                        "googNoiseSuppression": "false",
+                        "googHighpassFilter": "false"
+                    },
+                    "optional": []
                 },
-                "optional": []
-            },
-        }, gotStream, didntGetStream);
+            }, gotStream, didntGetStream);
     } catch (e) {
-        alert('getUserMedia threw exception :' + e);
+        alert('getUser Media threw exception :' + e);
     }
 
-//======game shit
+    //======game setup
     var game = new Phaser.Game(1000, 800, Phaser.CANVAS);
-    var play = function(game){}
-     
+
+    var play = function(game) {}
+
     play.prototype = {
-		preload:function(){
-			game.load.image("bird", "assets/bird-2.png"); 
-			game.load.image("pipe", "assets/pipe1.png");	
+        preload: function() {
+            game.load.image("bird", "assets/bird-2.png"); 
+            game.load.image("pipe", "assets/pipe1.png");	
             game.load.image("button", "assets/start-1.png");	
             game.load.image("bg", "assets/game-bg2.png");
-            
-            // sound files
-            game.load.audio('backgroundMusic', 'assets/background-music.mp3');
-            game.load.audio('startSound', 'assets/Sounds/game-start.mp3');
-            game.load.audio('scoreSound', 'assets/score-sound.mp3');
-            game.load.audio('gameOverSound', 'assets/Sounds/game-over.mp3');
+
+            // Add game over image
+            game.load.image("gameOver", "assets/game-over.png");
+            game.load.image("restartButton", "assets/start-1.png");
         },
 
-		create:function(){
-            game.paused = true
+        create: function() {
+            game.paused = true;
             // Use scale method to make the background fit the entire canvas
-            background = game.add.sprite(0, 0, 'bg');
+            var background = game.add.sprite(0, 0, 'bg');
             background.width = game.width;
             background.height = game.height;
-            
-            button = game.add.button(game.world.centerX - 95, 650, 'button', actionOnClick, this, 2, 1, 0);        
 
-			pipeGroup = game.add.group();
-			score = 0;
-			topScore = localStorage.getItem("topFlappyScore")==null?0:localStorage.getItem("topFlappyScore");
-			scoreText = game.add.text(10,10,"-",{
-				font:"bold 32px Arial",
+            button = game.add.button(game.world.centerX - 95, 630, 'button', actionOnClick, this, 2, 1, 0);        
+
+            pipeGroup = game.add.group();
+            score = 0;
+            topScore = localStorage.getItem("topFlappyScore") == null ? 0 : localStorage.getItem("topFlappyScore");
+            scoreText = game.add.text(10, 10, "-", {
+                font: "bold 32px Arial",
                 fill: "#5ed2fd"  
             });
 
-			updateScore();
-			game.stage.backgroundColor = "#87CEEB";
-			game.stage.disableVisibilityChange = true;
-			game.physics.startSystem(Phaser.Physics.ARCADE);
-			bird = game.add.sprite(80,240,"bird");
-			bird.anchor.set(0.5);
-			game.physics.arcade.enable(bird);
-			bird.body.gravity.y = birdGravity;
-            // game.input.onDown.add(flap, this);
-            // game input
+            updateScore();
+            game.stage.backgroundColor = "#87CEEB";
+            game.stage.disableVisibilityChange = true;
+            game.physics.startSystem(Phaser.Physics.ARCADE);
+            bird = game.add.sprite(80, 240, "bird");
+            bird.anchor.set(0.5);
+            game.physics.arcade.enable(bird);
+            bird.body.gravity.y = birdGravity;
 
-			game.time.events.loop(pipeInterval, addPipe); 
-			addPipe();
+            game.time.events.loop(pipeInterval, addPipe); 
+            addPipe();
+        },
 
-            // Initialize sounds
-            this.backgroundMusic = game.add.audio('backgroundMusic');
-            this.startSound = game.add.audio('startSound');
-            this.scoreSound = game.add.audio('scoreSound');
-            this.gameOverSound = game.add.audio('gameOverSound');
-
-            // Optional: Loop background music
-            this.backgroundMusic.loop = true;
-		},
-		update:function(){
-			game.physics.arcade.collide(bird, pipeGroup, die);
-			if(bird.y>game.height){
-				die();
-			}	
-		}
-	}
+        update: function() {
+            // Only allow game mechanics if game is not over
+            if (!gameOver) {
+                game.physics.arcade.collide(bird, pipeGroup, die);
+                if (bird.y > game.height) {
+                    die();
+                }
+            }
+        },
+    
+        // Add a method to stop the game completely
+        stopGame: function() {
+            gameOver = true;
+            // Stop pipe generation
+            game.time.events.removeAll();
+            // Stop bird movement
+            bird.body.velocity.x = 0;
+            bird.body.velocity.y = 0;
+            bird.body.gravity.y = 0;
+            // Stop pipes
+            pipeGroup.forEach(function(pipe) {
+                pipe.body.velocity.x = 0;
+            }, this);
+        }
+    }
      
-    game.state.add("Play",play);
+    game.state.add("Play", play);
     game.state.start("Play");
      
-    function updateScore(){
-		scoreText.text = "Score: "+score+"\nBest: "+topScore;	
-	}
-     
-	// function flap(){
-	// 	bird.body.velocity.y = -birdFlapPower;	
-	// }
-	
-	function addPipe(){
-		var pipeHolePosition = game.rnd.between(100, 400-pipeHole);
-		var upperPipe = new Pipe(game,340,pipeHolePosition-620,-birdSpeed);
-		game.add.existing(upperPipe);
-		pipeGroup.add(upperPipe);
-		var lowerPipe = new Pipe(game,340,pipeHolePosition+pipeHole,-birdSpeed);
-		game.add.existing(lowerPipe);
+    function updateScore() {
+        scoreText.text = "Score: " + score + "\nBest: " + topScore;	
+    }
+
+    function addPipe() {
+        let currentPipeSpeed = -birdSpeed - (Math.floor(score / 10) * 20);
+        let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 50);
+        
+        var pipeHolePosition = game.rnd.between(100, 400 - pipeHole);
+        var upperPipe = new Pipe(game, 340, pipeHolePosition - 620, currentPipeSpeed);
+        game.add.existing(upperPipe);
+        pipeGroup.add(upperPipe);
+        var lowerPipe = new Pipe(game, 340, pipeHolePosition + pipeHole, currentPipeSpeed);
+        game.add.existing(lowerPipe);
         pipeGroup.add(lowerPipe);
 
+        bird.body.gravity.y = currentBirdGravity;
     }
 	
-	function die(){
-		localStorage.setItem("topFlappyScore", Math.max(score, topScore));	
-		location.reload();	
-	}
+    function die() {
+        if (gameOver) return; // Prevent multiple calls
+        
+        gameOver = true; // Set global gameOver flag
+        
+        localStorage.setItem("topFlappyScore", Math.max(score, topScore));
+        
+        // Call the stopGame method
+        game.state.getCurrentState().stopGame();
+        
+        // Add game over image
+        var gameOverImage = game.add.sprite(game.world.centerX, game.world.centerY, 'gameOver');
+        gameOverImage.anchor.set(0.5);
+        
+        // Add restart button
+        var restartButton = game.add.button(
+            game.world.centerX, 
+            game.world.centerY + 100, 
+            'restartButton', 
+            restartGame, 
+            this, 2, 1, 0
+        );
+        restartButton.anchor.set(0.5);
+    }
+
+    
+    function restartGame() {
+        location.reload();
+    }
 	
-	Pipe = function (game, x, y, speed) {
-		Phaser.Sprite.call(this, game, x, y, "pipe");
-		game.physics.enable(this, Phaser.Physics.ARCADE);
-		this.body.velocity.x = speed;
-		this.giveScore = true;	
-	};
+    Pipe = function (game, x, y, speed) {
+        Phaser.Sprite.call(this, game, x, y, "pipe");
+        game.physics.enable(this, Phaser.Physics.ARCADE);
+        this.body.velocity.x = speed;
+        this.giveScore = true;	
+    };
 	
-	Pipe.prototype = Object.create(Phaser.Sprite.prototype);
-	Pipe.prototype.constructor = Pipe;
+    Pipe.prototype = Object.create(Phaser.Sprite.prototype);
+    Pipe.prototype.constructor = Pipe;
 	
-	Pipe.prototype.update = function() {
-		if(this.x+this.width<bird.x && this.giveScore){
-			score+=0.5;
-			updateScore();
-			this.giveScore = false;
-		}
-		if(this.x<-this.width){
-			this.destroy();
-		}
+    Pipe.prototype.update = function() {
+        if (this.x + this.width < bird.x && this.giveScore) {
+            score += 0.5;
+            updateScore();
+            this.giveScore = false;
+        }
+        if (this.x < -this.width) {
+            this.destroy();
+        }
     };	
 
-    function actionOnClick () {
+    function actionOnClick() {
         console.log("GOT CLICKED FAM!");
         audioContext.resume();
         sleep(1000).then(() => {
-        //do stuff
-        })
-        game.paused = false
-        button.visible = false
-
+            //do stuff
+        });
+        game.paused = false;
+        button.visible = false;
     }
 }
 
-function flap(){
-		bird.body.velocity.y = -birdFlapPower;	
+function flap() {
+    if (!gameOver && bird && bird.body) {
+        bird.body.velocity.y = -birdFlapPower;
+    }
 }
-// function flap(){
-//     // console.log("flap vol: " + -Math.floor(volume))
-//     // bird.body.velocity.y = bird.body.velocity.y - Math.floor(volume);	
-// }
 
 function didntGetStream() {
     alert('Stream generation failed.');
@@ -198,28 +219,21 @@ function didntGetStream() {
 var mediaStreamSource = null;
 
 function gotStream(stream) {
-    // Create an AudioNode from the stream.
     mediaStreamSource = audioContext.createMediaStreamSource(stream);
-
-    // Create a new volume meter and connect it.
     meter = createAudioMeter(audioContext);
     mediaStreamSource.connect(meter);
-
-
-
-    // kick off the visual updating
     drawLoop();
 }
 
-function drawLoop( time ) {
-    if(meter.volume* 50 > 10) {
-        flap()
+function drawLoop(time) {
+    // Add more robust volume checking
+    if (!gameOver && meter && meter.volume * 50 > 15) {
+        console.log("Flapping! Volume:", meter.volume * 50);
+        flap();
     }
-
-    // set up the next visual callback
-    rafID = window.requestAnimationFrame( drawLoop );
+    rafID = window.requestAnimationFrame(drawLoop);
 }
 
 const sleep = (milliseconds) => {
-  return new Promise(resolve => setTimeout(resolve, milliseconds))
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
