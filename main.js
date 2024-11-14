@@ -25,6 +25,9 @@ var gameOver = false;
 var topScorers = [];
 var topScorersText;
 
+var lightningElements = [];
+var lastLightningScore = 0;
+
 window.onload = function() {	
     //======microphone setup
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -53,7 +56,7 @@ window.onload = function() {
     }
 
     //======game setup
-    var game = new Phaser.Game(1000, 800, Phaser.CANVAS);
+    var game = new Phaser.Game(1100, 800, Phaser.CANVAS);
 
     var play = function(game) {}
 
@@ -67,6 +70,11 @@ window.onload = function() {
             // Add game over image
             game.load.image("gameOver", "assets/game-over.png");
             game.load.image("restartButton", "assets/retry.png");
+
+            // Load sound files
+            game.load.audio('startSound', 'assets/Sounds/game-start.mp3');
+            // game.load.audio('gameOverSound', 'assets/Sounds/game-over.mp3');
+            game.load.audio('gameScoreSound', 'assets/Sounds/scoring.mp3');
         },
 
         create: function() {
@@ -107,6 +115,10 @@ window.onload = function() {
                 fill: "#5ed2fd"
             });
             updateTopScorersDisplay();
+            // Create sound objects
+            this.startSound = game.add.audio('startSound');
+            // this.gameOverSound = game.add.audio('gameOverSound');
+            this.scoreSound = game.add.audio('gameScoreSound');
         },
 
         update: function() {
@@ -115,6 +127,12 @@ window.onload = function() {
                 game.physics.arcade.collide(bird, pipeGroup, die);
                 if (bird.y > game.height) {
                     die();
+                }
+        
+                // Lightning logic
+                if (score > 0 && score % 10 === 0 && score !== lastLightningScore) {
+                    triggerLightning(game);
+                    lastLightningScore = score;
                 }
             }
         },
@@ -183,7 +201,83 @@ window.onload = function() {
         }
     }
 
+    function triggerLightning(game) {
+        // Remove previous lightning elements
+        lightningElements.forEach(element => element.remove());
+        lightningElements = [];
+    
+        // Strike 3 times
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                let lightning = createLightningElement(game);
+                lightningElements.push(lightning);
+            }, i * 500); // Stagger lightning strikes
+        }
+    }
+    
+    function createLightningElement(game) {
+        // Create a lightning div
+        let lightning = document.createElement('div');
+        lightning.style.position = 'absolute';
+        lightning.style.top = '0';
+        lightning.style.left = '0';
+        lightning.style.width = '100%';
+        lightning.style.height = '100%';
+        lightning.style.pointerEvents = 'none';
+        lightning.style.zIndex = '1000';
+        
+        // Create lightning effect
+        lightning.style.background = `
+            repeating-linear-gradient(
+                0deg,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.1) 1px,
+                transparent 1px,
+                transparent 2px
+            ),
+            linear-gradient(
+                ${Math.random() * 360}deg, 
+                rgba(173, 216, 230, 0.3), 
+                rgba(135, 206, 235, 0.5)
+            )
+        `;
+        
+        // Random lightning bolt
+        let bolt = document.createElement('div');
+        bolt.style.position = 'absolute';
+        bolt.style.width = '10px';
+        bolt.style.height = '100%';
+        bolt.style.left = `${Math.random() * 100}%`;
+        bolt.style.background = 'linear-gradient(to bottom, transparent, white, transparent)';
+        bolt.style.opacity = '0.7';
+        bolt.style.animation = 'lightning 0.1s linear infinite';
+        
+        lightning.appendChild(bolt);
+        
+        // Add style for lightning animation
+        let style = document.createElement('style');
+        style.textContent = `
+            @keyframes lightning {
+                0% { box-shadow: 0 0 5px white; }
+                50% { box-shadow: 0 0 20px white; }
+                100% { box-shadow: 0 0 5px white; }
+            }
+        `;
+        
+        document.head.appendChild(style);
+        document.body.appendChild(lightning);
+        
+        // Automatically remove lightning after a short duration
+        setTimeout(() => {
+            document.body.removeChild(lightning);
+            document.head.removeChild(style);
+        }, 1000);
+        
+        return lightning;
+    }
+
     function addPipe() {
+
         let currentPipeSpeed = -birdSpeed - (Math.floor(score / 10) * 20);
         let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 50);
         
@@ -203,13 +297,14 @@ window.onload = function() {
         
         gameOver = true;
         
+        // Play game over sound
+        // this.gameOverSound.play();
+        
         var currentTopScore = Math.max(score, topScore);
         localStorage.setItem("topFlappyScore", currentTopScore);
         
         // Check if this is a high score
         checkAndAddHighScore(score);
-
-    
         
         // Call the stopGame method
         game.state.getCurrentState().stopGame();
@@ -248,6 +343,12 @@ window.onload = function() {
         if (this.x + this.width < bird.x && this.giveScore) {
             score += 0.5;
             updateScore();
+            
+            // Play scoring sound
+            if (score % 1 === 0) {  // Only play sound on whole number scores
+                this.game.state.getCurrentState().scoreSound.play();
+            }
+            
             this.giveScore = false;
         }
         if (this.x < -this.width) {
@@ -257,6 +358,10 @@ window.onload = function() {
 
     function actionOnClick() {
         console.log("GOT CLICKED FAM!");
+        
+        // Play start sound
+        this.startSound.play();
+        
         audioContext.resume();
         sleep(1000).then(() => {
             //do stuff
