@@ -4,7 +4,7 @@ var birdGravity = 400; //800
 // horizontal bird speed
 var birdSpeed = 125;
 // flap thrust
-var birdFlapPower = 300; //300
+var birdFlapPower = 100; //300
 // milliseconds between the creation of two pipes
 var pipeInterval = 2500;
 // hole between pipes, in pixels
