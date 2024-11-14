@@ -4,7 +4,7 @@ var birdGravity = 400; //800
 // horizontal bird speed
 var birdSpeed = 125;
 // flap thrust
-var birdFlapPower = 100; //300
+var birdFlapPower = 300; //300
 // milliseconds between the creation of two pipes
 var pipeInterval = 2500;
 // hole between pipes, in pixels
@@ -59,6 +59,8 @@ window.onload = function() {
     var game = new Phaser.Game(1100, 800, Phaser.CANVAS);
 
     var play = function(game) {}
+
+    var hasShaken = false;
 
     play.prototype = {
         preload: function() {
@@ -127,6 +129,12 @@ window.onload = function() {
                 game.physics.arcade.collide(bird, pipeGroup, die);
                 if (bird.y > game.height) {
                     die();
+                }
+                
+                // Check for score to trigger shake
+                if (score >= 20 && !hasShaken) {
+                    game.camera.shake(0.05, 500); // Shake for 500 milliseconds with intensity of 0.05
+                    hasShaken = true; // Set the flag to true to prevent further shakes
                 }
         
                 // Lightning logic
