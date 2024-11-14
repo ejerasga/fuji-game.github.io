@@ -68,6 +68,7 @@ window.onload = function() {
             game.load.image("pipe", "assets/pipe1.png");	
             game.load.image("button", "assets/start-1.png");	
             game.load.image("bg", "assets/game-bg2.png");
+            game.load.image("trail", "assets/trail.png");
 
             // Add game over image
             game.load.image("gameOver", "assets/game-over.png");
@@ -121,29 +122,39 @@ window.onload = function() {
             this.startSound = game.add.audio('startSound');
             // this.gameOverSound = game.add.audio('gameOverSound');
             this.scoreSound = game.add.audio('gameScoreSound');
-        },
 
-        update: function() {
-            // Only allow game mechanics if game is not over
-            if (!gameOver) {
-                game.physics.arcade.collide(bird, pipeGroup, die);
-                if (bird.y > game.height) {
-                    die();
+            // Create the trail sprite
+            this.trail = game.add.sprite(bird.x - 50, bird.y, 'trail'); // Position it to the left of the bird
+            this.trail.anchor.set(0.5); // Center the anchor
+            this.trail.animations.add('waving', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12, true);
+            this.trail.animations.play('waving');
+            },
+
+            update: function() {
+                // Only allow game mechanics if game is not over
+                if (!gameOver) {
+                    game.physics.arcade.collide(bird, pipeGroup, die);
+                    if (bird.y > game.height) {
+                        die();
+                    }
+            
+                    // Update trail position to follow the bird
+                    this.trail.x = bird.x - 50; // Keep it a little left of the bird
+                    this.trail.y = bird.y; // Align with the bird's y position
+            
+                    // Check for score to trigger shake
+                    if (score >= 20 && !hasShaken) {
+                        game.camera.shake(0.05, 500); // Shake for 500 milliseconds with intensity of 0.05
+                        hasShaken = true; // Set the flag to true to prevent further shakes
+                    }
+            
+                    // Lightning logic
+                    if (score > 0 && score % 10 === 0 && score !== lastLightningScore) {
+                        triggerLightning(game);
+                        lastLightningScore = score;
+                    }
                 }
-                
-                // Check for score to trigger shake
-                if (score >= 20 && !hasShaken) {
-                    game.camera.shake(0.05, 500); // Shake for 500 milliseconds with intensity of 0.05
-                    hasShaken = true; // Set the flag to true to prevent further shakes
-                }
-        
-                // Lightning logic
-                if (score > 0 && score % 10 === 0 && score !== lastLightningScore) {
-                    triggerLightning(game);
-                    lastLightningScore = score;
-                }
-            }
-        },
+            },
     
         // Add a method to stop the game completely
         stopGame: function() {
@@ -185,25 +196,21 @@ window.onload = function() {
     }
     
     function checkAndAddHighScore(newScore) {
-        // Check if the new score qualifies for top 5
-        if (topScorers.length < 5 || newScore > topScorers[topScorers.length - 1].score) {
-            // Prompt for name
-            var playerName = prompt("Enter your name:");
-            
-            if (playerName) {
-                // If the list is full, remove the lowest score
+        var playerName = prompt("Enter your name:");
+        
+        if (playerName) {
+            // If the list is not full or the new score is higher than the lowest score
+            if (topScorers.length < 5 || newScore > topScorers[topScorers.length - 1].score) {
                 if (topScorers.length >= 5) {
-                    topScorers.pop();
+                    topScorers.pop(); // Remove the lowest score
                 }
                 
-                // Add new high score
                 topScorers.push({ name: playerName, score: newScore });
                 
                 // Sort and save
                 topScorers.sort((a, b) => b.score - a.score);
                 localStorage.setItem("topFlappyScorers", JSON.stringify(topScorers));
                 
-                // Update display
                 updateTopScorersDisplay();
             }
         }
@@ -284,19 +291,58 @@ window.onload = function() {
         return lightning;
     }
 
-    function addPipe() {
+    var pipeCounter = 0; // Global variable to track pipe generation
 
+    function addPipe() {
         let currentPipeSpeed = -birdSpeed - (Math.floor(score / 10) * 20);
         let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 50);
-        
-        var pipeHolePosition = game.rnd.between(100, 400 - pipeHole);
-        var upperPipe = new Pipe(game, 340, pipeHolePosition - 620, currentPipeSpeed);
-        game.add.existing(upperPipe);
-        pipeGroup.add(upperPipe);
-        var lowerPipe = new Pipe(game, 340, pipeHolePosition + pipeHole, currentPipeSpeed);
-        game.add.existing(lowerPipe);
-        pipeGroup.add(lowerPipe);
 
+        // First two pipes (initial generation)
+        if (pipeCounter === 0) {
+            var pipeHolePosition = game.rnd.between(600, 200 - pipeHole);
+            var upperPipe = new Pipe(game, 400, pipeHolePosition - 620, currentPipeSpeed);
+            game.add.existing(upperPipe);
+            pipeGroup.add(upperPipe);
+            var lowerPipe = new Pipe(game, 400, pipeHolePosition + pipeHole, currentPipeSpeed);
+            game.add.existing(lowerPipe);
+            pipeGroup.add(lowerPipe);
+            
+            pipeCounter++;
+        } 
+        // After first two pipes, generate 4 pipes
+        else if (pipeCounter === 1) {
+            // First pair of pipes
+            var pipeHolePosition1 = game.rnd.between(600, 200 - pipeHole);
+            var upperPipe1 = new Pipe(game, 600, pipeHolePosition1 - 620, currentPipeSpeed);
+            game.add.existing(upperPipe1);
+            pipeGroup.add(upperPipe1);
+            var lowerPipe1 = new Pipe(game, 600, pipeHolePosition1 + pipeHole, currentPipeSpeed);
+            game.add.existing(lowerPipe1);
+            pipeGroup.add(lowerPipe1);
+
+            // Second pair of pipes
+            var pipeHolePosition2 = game.rnd.between(600, 200 - pipeHole);
+            var upperPipe2 = new Pipe(game, 1000, pipeHolePosition2 - 620, currentPipeSpeed);
+            game.add.existing(upperPipe2);
+            pipeGroup.add(upperPipe2);
+            var lowerPipe2 = new Pipe(game, 1000, pipeHolePosition2 + pipeHole, currentPipeSpeed);
+            game.add.existing(lowerPipe2);
+            pipeGroup.add(lowerPipe2);
+
+            pipeCounter++;
+        }
+        // Continue generating 2 pipes in subsequent calls
+        else {
+            var pipeHolePosition = game.rnd.between(600, 200 - pipeHole);
+            var upperPipe = new Pipe(game, 1000, pipeHolePosition - 620, currentPipeSpeed);
+            game.add.existing(upperPipe);
+            pipeGroup.add(upperPipe);
+            var lowerPipe = new Pipe(game, 1000, pipeHolePosition + pipeHole, currentPipeSpeed);
+            game.add.existing(lowerPipe);
+            pipeGroup.add(lowerPipe);
+        }
+
+        // Adjust the bird's gravity based on score
         bird.body.gravity.y = currentBirdGravity;
     }
 	
