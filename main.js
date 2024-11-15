@@ -1,10 +1,10 @@
 var bird;
 // bird gravity, will make bird fall if you don't flap
-var birdGravity = 400; //800
+var birdGravity = 300; //800
 // horizontal bird speed
 var birdSpeed = 125;
 // flap thrust
-var birdFlapPower = 100; //300
+var birdFlapPower = 150; //300
 // milliseconds between the creation of two pipes
 var pipeInterval = 2500;
 // hole between pipes, in pixels
@@ -313,19 +313,19 @@ window.onload = function() {
         else if (pipeCounter === 1) {
             // First pair of pipes
             var pipeHolePosition1 = game.rnd.between(600, 200 - pipeHole);
-            var upperPipe1 = new Pipe(game, 600, pipeHolePosition1 - 620, currentPipeSpeed);
+            var upperPipe1 = new Pipe(game, 500, pipeHolePosition1 - 620, currentPipeSpeed);
             game.add.existing(upperPipe1);
             pipeGroup.add(upperPipe1);
-            var lowerPipe1 = new Pipe(game, 600, pipeHolePosition1 + pipeHole, currentPipeSpeed);
+            var lowerPipe1 = new Pipe(game, 500, pipeHolePosition1 + pipeHole, currentPipeSpeed);
             game.add.existing(lowerPipe1);
             pipeGroup.add(lowerPipe1);
 
             // Second pair of pipes
             var pipeHolePosition2 = game.rnd.between(600, 200 - pipeHole);
-            var upperPipe2 = new Pipe(game, 1000, pipeHolePosition2 - 620, currentPipeSpeed);
+            var upperPipe2 = new Pipe(game, 900, pipeHolePosition2 - 620, currentPipeSpeed);
             game.add.existing(upperPipe2);
             pipeGroup.add(upperPipe2);
-            var lowerPipe2 = new Pipe(game, 1000, pipeHolePosition2 + pipeHole, currentPipeSpeed);
+            var lowerPipe2 = new Pipe(game, 900, pipeHolePosition2 + pipeHole, currentPipeSpeed);
             game.add.existing(lowerPipe2);
             pipeGroup.add(lowerPipe2);
 
@@ -334,10 +334,10 @@ window.onload = function() {
         // Continue generating 2 pipes in subsequent calls
         else {
             var pipeHolePosition = game.rnd.between(600, 200 - pipeHole);
-            var upperPipe = new Pipe(game, 1000, pipeHolePosition - 620, currentPipeSpeed);
+            var upperPipe = new Pipe(game, 1100, pipeHolePosition - 620, currentPipeSpeed);
             game.add.existing(upperPipe);
             pipeGroup.add(upperPipe);
-            var lowerPipe = new Pipe(game, 1000, pipeHolePosition + pipeHole, currentPipeSpeed);
+            var lowerPipe = new Pipe(game, 1100, pipeHolePosition + pipeHole, currentPipeSpeed);
             game.add.existing(lowerPipe);
             pipeGroup.add(lowerPipe);
         }
