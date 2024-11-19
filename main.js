@@ -1,12 +1,12 @@
 var bird;
 // bird gravity, will make bird fall if you don't flap
-var birdGravity = 300; //800
+var birdGravity = 400; //800
 // horizontal bird speed
 var birdSpeed = 125;
 // flap thrust
-var birdFlapPower = 150; //300
+var birdFlapPower = 200; //300
 // milliseconds between the creation of two pipes
-var pipeInterval = 2500;
+var pipeInterval = 3000;
 // hole between pipes, in pixels
 var pipeHole = 120;
 var pipeGroup;
@@ -56,7 +56,7 @@ window.onload = function() {
     }
 
     //======game setup
-    var game = new Phaser.Game(1100, 800, Phaser.CANVAS);
+    var game = new Phaser.Game(1300, 800, Phaser.CANVAS);
 
     var play = function(game) {}
 
@@ -64,8 +64,8 @@ window.onload = function() {
 
     play.prototype = {
         preload: function() {
-            game.load.image("bird", "assets/bird-2.png"); 
-            game.load.image("pipe", "assets/pipe1.png");	
+            game.load.image("bird", "assets/bird-2.png");
+            game.load.image("pipe", "assets/pipe1.png");
             game.load.image("button", "assets/start-1.png");	
             game.load.image("bg", "assets/game-bg2.png");
             game.load.image("trail", "assets/trail.png");
@@ -87,7 +87,7 @@ window.onload = function() {
             background.width = game.width;
             background.height = game.height;
 
-            button = game.add.button(game.world.centerX - 95, 630, 'button', actionOnClick, this, 2, 1, 0);        
+            button = game.add.button(game.world.centerX - 95, 630, 'button', actionOnClick, this, 2, 1, 0);   
 
             pipeGroup = game.add.group();
             score = 0;
@@ -106,7 +106,7 @@ window.onload = function() {
             game.physics.arcade.enable(bird);
             bird.body.gravity.y = birdGravity;
 
-            game.time.events.loop(pipeInterval, addPipe); 
+            game.time.events.loop(pipeInterval, addPipe);
             addPipe();
 
             // Load top scorers from localStorage
@@ -123,11 +123,14 @@ window.onload = function() {
             // this.gameOverSound = game.add.audio('gameOverSound');
             this.scoreSound = game.add.audio('gameScoreSound');
 
-            // Create the trail sprite
-            this.trail = game.add.sprite(bird.x - 50, bird.y, 'trail'); // Position it to the left of the bird
-            this.trail.anchor.set(0.5); // Center the anchor
-            this.trail.animations.add('waving', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12, true);
-            this.trail.animations.play('waving');
+            // Create the trail sprite for an after-image effect
+            this.trail = game.add.emitter(bird.x - 50, bird.y, 50); // Position it to the left of the bird
+            this.trail.makeParticles('trail'); // Use the trail image
+            this.trail.setYSpeed(-20, 20); // Set vertical speed range
+            this.trail.setXSpeed(-20, 20); // Set horizontal speed range
+            this.trail.setAlpha(1, 0, 1000); // Fade out particles over 1 second
+            this.trail.setScale(0.5, 0, 0.5, 0, 1000); // Scale down the particles over 1 second
+            this.trail.start(false, 1000, 50); // Start emitting particles
             },
 
             update: function() {
@@ -139,7 +142,7 @@ window.onload = function() {
                     }
             
                     // Update trail position to follow the bird
-                    this.trail.x = bird.x - 50; // Keep it a little left of the bird
+                    this.trail.x = bird.x - 40; // Keep it a little left of the bird
                     this.trail.y = bird.y; // Align with the bird's y position
             
                     // Check for score to trigger shake
@@ -294,8 +297,8 @@ window.onload = function() {
     var pipeCounter = 0; // Global variable to track pipe generation
 
     function addPipe() {
-        let currentPipeSpeed = -birdSpeed - (Math.floor(score / 10) * 20);
-        let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 50);
+        let currentPipeSpeed = -birdSpeed - (Math.floor(score / 5) * 2);
+        let currentBirdGravity = birdGravity + (Math.floor(score / 10) * 20);
 
         // First two pipes (initial generation)
         if (pipeCounter === 0) {
@@ -303,7 +306,7 @@ window.onload = function() {
             var upperPipe = new Pipe(game, 400, pipeHolePosition - 620, currentPipeSpeed);
             game.add.existing(upperPipe);
             pipeGroup.add(upperPipe);
-            var lowerPipe = new Pipe(game, 400, pipeHolePosition + pipeHole, currentPipeSpeed);
+            var lowerPipe = new Pipe(game, 400, pipeHolePosition + pipeHole + 50, currentPipeSpeed);
             game.add.existing(lowerPipe);
             pipeGroup.add(lowerPipe);
             
@@ -316,16 +319,16 @@ window.onload = function() {
             var upperPipe1 = new Pipe(game, 500, pipeHolePosition1 - 620, currentPipeSpeed);
             game.add.existing(upperPipe1);
             pipeGroup.add(upperPipe1);
-            var lowerPipe1 = new Pipe(game, 500, pipeHolePosition1 + pipeHole, currentPipeSpeed);
+            var lowerPipe1 = new Pipe(game, 500, pipeHolePosition1 + pipeHole + 50, currentPipeSpeed);
             game.add.existing(lowerPipe1);
             pipeGroup.add(lowerPipe1);
 
             // Second pair of pipes
             var pipeHolePosition2 = game.rnd.between(600, 200 - pipeHole);
-            var upperPipe2 = new Pipe(game, 900, pipeHolePosition2 - 620, currentPipeSpeed);
+            var upperPipe2 = new Pipe(game, 950, pipeHolePosition2 - 620, currentPipeSpeed);
             game.add.existing(upperPipe2);
             pipeGroup.add(upperPipe2);
-            var lowerPipe2 = new Pipe(game, 900, pipeHolePosition2 + pipeHole, currentPipeSpeed);
+            var lowerPipe2 = new Pipe(game, 950, pipeHolePosition2 + pipeHole + 50, currentPipeSpeed);
             game.add.existing(lowerPipe2);
             pipeGroup.add(lowerPipe2);
 
@@ -334,10 +337,10 @@ window.onload = function() {
         // Continue generating 2 pipes in subsequent calls
         else {
             var pipeHolePosition = game.rnd.between(600, 200 - pipeHole);
-            var upperPipe = new Pipe(game, 1100, pipeHolePosition - 620, currentPipeSpeed);
+            var upperPipe = new Pipe(game, 1050 + (pipeCounter - 2) * 800, pipeHolePosition - 620, currentPipeSpeed);
             game.add.existing(upperPipe);
             pipeGroup.add(upperPipe);
-            var lowerPipe = new Pipe(game, 1100, pipeHolePosition + pipeHole, currentPipeSpeed);
+            var lowerPipe = new Pipe(game, 1050 + (pipeCounter - 2) * 800, pipeHolePosition + pipeHole + 50, currentPipeSpeed);
             game.add.existing(lowerPipe);
             pipeGroup.add(lowerPipe);
         }
@@ -445,9 +448,8 @@ function gotStream(stream) {
 }
 
 function drawLoop(time) {
-    // Add more robust volume checking
-    if (!gameOver && meter && meter.volume * 50 > 15) {
-        console.log("Flapping! Volume:", meter.volume * 50);
+    if (!gameOver && meter && meter.volume * 100 > 10) {
+        console.log("Flapping! Volume:", meter.volume * 100);
         flap();
     }
     rafID = window.requestAnimationFrame(drawLoop);
@@ -456,3 +458,6 @@ function drawLoop(time) {
 const sleep = (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
+
+
+
