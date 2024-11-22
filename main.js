@@ -123,13 +123,21 @@ window.onload = function() {
             // this.gameOverSound = game.add.audio('gameOverSound');
             this.scoreSound = game.add.audio('gameScoreSound');
 
+            // Spacebar keyboard input
+            this.spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+            this.spaceKey.onDown.add(() => {
+                if (!gameOver && bird && bird.body) {
+                    bird.body.velocity.y = -birdFlapPower * 1.5; // Increase flap power
+                }
+            }, this);
+
             // Create the trail sprite for an after-image effect
             this.trail = game.add.emitter(bird.x - 50, bird.y, 50); // Position it to the left of the bird
-            this.trail.makeParticles('trail'); // Use the trail image
-            this.trail.setYSpeed(-20, 20); // Set vertical speed range
-            this.trail.setXSpeed(-20, 20); // Set horizontal speed range
-            this.trail.setAlpha(1, 0, 1000); // Fade out particles over 1 second
-            this.trail.setScale(0.5, 0, 0.5, 0, 1000); // Scale down the particles over 1 second
+            this.trail.makeParticles('trail'); 
+            this.trail.setYSpeed(-20, 20); 
+            this.trail.setXSpeed(-20, 20); 
+            this.trail.setAlpha(1, 0, 1000); 
+            this.trail.setScale(0.5, 0, 0.5, 0, 1000); 
             this.trail.start(false, 1000, 50); // Start emitting particles
             },
 
